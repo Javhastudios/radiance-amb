@@ -1,0 +1,32 @@
+RADIANCE-AMB para Windows
+=========================
+
+Contenido
+---------
+  Radiance-AMB.exe    La aplicación independiente. Doble clic para abrirla.
+  Radiance-AMB.vst3   El plugin VST3 para tu DAW (es una carpeta: cópiala entera).
+
+La primera vez
+--------------
+Windows puede avisar de que es un "editor desconocido" (la app no está firmada con un
+certificado de pago). Pulsa "Más información" y luego "Ejecutar de todas formas".
+
+Sonido y MIDI
+-------------
+En la aplicación, el botón "Options" (arriba a la izquierda) abre los ajustes de audio:
+elige tu tarjeta de sonido (ASIO si la tienes) y, en la misma ventana, tu teclado MIDI.
+
+Instalar el VST3
+----------------
+Copia la carpeta "Radiance-AMB.vst3" en:
+    C:\Program Files\Common Files\VST3\
+y vuelve a escanear plugins en tu DAW. Aparece como instrumento (Javhastudios > Radiance-AMB).
+"Reproducir" enciende el dron; las notas MIDI tocan voces con su propia envolvente.
+Todos los controles se pueden automatizar desde el DAW.
+
+Tus archivos
+------------
+Todo se guarda en Documentos\Radiance-AMB (lo comparten la app y el plugin):
+  Libreria\     el audio que cargues (WAV, AIFF, FLAC, MP3)
+  Patches\      los patches (.json, el mismo formato que la versión web)
+  Grabaciones\  lo que grabes con el botón Grabar

@@ -1,0 +1,39 @@
+RADIANCE-AMB para macOS (Intel y Apple Silicon, macOS 10.13 o posterior)
+========================================================================
+
+Contenido
+---------
+  Radiance-AMB.app        La aplicación independiente.
+  Radiance-AMB.vst3       El plugin VST3.
+  Radiance-AMB.component  El plugin Audio Unit (Logic, GarageBand...).
+
+La primera vez
+--------------
+La app no está firmada con una cuenta de desarrollador de Apple, así que macOS la bloquea.
+Arrastra "Radiance-AMB.app" a Aplicaciones y, ANTES de abrirla, en Terminal:
+    sudo xattr -cr "/Applications/Radiance-AMB.app"
+(truco: escribe  sudo xattr -cr  con un espacio al final y arrastra la app a la ventana).
+Si ya intentaste abrirla: Ajustes del Sistema > Privacidad y seguridad > "Abrir igualmente".
+
+Instalar los plugins
+--------------------
+Copia los archivos en estas carpetas (Finder > Ir > Ir a la carpeta...):
+    Radiance-AMB.vst3       ->  /Library/Audio/Plug-Ins/VST3/
+    Radiance-AMB.component  ->  /Library/Audio/Plug-Ins/Components/
+Después, ANTES de abrir el DAW, quita la cuarentena en Terminal:
+    sudo xattr -cr "/Library/Audio/Plug-Ins/VST3/Radiance-AMB.vst3"
+    sudo xattr -cr "/Library/Audio/Plug-Ins/Components/Radiance-AMB.component"
+En Ableton: Ajustes > Plug-ins > "Usar carpetas de sistema VST3: Sí" y pulsa
+"Volver a escanear" con la tecla Alt pulsada. Aparece en Javhastudios > Radiance-AMB.
+
+Sonido y MIDI
+-------------
+En la aplicación, "Options" (arriba a la izquierda) abre los ajustes de audio y MIDI.
+En el DAW, el MIDI llega por la pista (notas, pitch bend, rueda de modulación, sustain).
+
+Tus archivos
+------------
+Todo se guarda en Documentos/Radiance-AMB (lo comparten la app y el plugin):
+  Libreria/     el audio que cargues (WAV, AIFF, FLAC, MP3)
+  Patches/      los patches (.json, el mismo formato que la versión web)
+  Grabaciones/  lo que grabes con el botón Grabar

@@ -1,0 +1,10 @@
+build/
+out/
+smoke-out/
+dist/
+*.dmg
+*.zip
+*.tar.gz
+.DS_Store
+tests/node_modules/
+node_modules/

@@ -1,0 +1,158 @@
+name: Compilar Radiance-AMB
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # para publicar la release cuando se sube una etiqueta v*
+
+jobs:
+  # Comprueba que el motor en C++ suena igual que el original de la versión web
+  motor:
+    name: Motor (C++ frente a la versión web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Comparar
+        run: |
+          # versión fijada: el motor se comprobó contra esta versión de node-web-audio-api
+          (cd tests && npm install --no-save node-web-audio-api@2.2.0)
+          node tests/run_js.mjs out
+          g++ -std=c++17 -O2 -o compare_cpp tests/compare_cpp.cpp
+          ./compare_cpp out
+          node tests/compare.mjs out
+
+  build:
+    name: ${{ matrix.name }}
+    needs: motor
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            cmake_args: ''
+          - name: macOS
+            os: macos-latest
+            cmake_args: '"-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"'
+          - name: Linux
+            os: ubuntu-22.04
+            cmake_args: ''
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencias (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libfreetype6-dev libfontconfig1-dev libx11-dev \
+            libxcomposite-dev libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
+            libgl1-mesa-dev xvfb
+
+      - name: Configurar
+        shell: bash
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_args }}
+
+      - name: Compilar
+        shell: bash
+        run: cmake --build build --config Release --target RadianceAMB_All --parallel 4
+
+      - name: Prueba de humo (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cmake --build build --config Release --target ra_smoke --parallel 4
+          xvfb-run -a ./build/ra_smoke_artefacts/Release/ra_smoke smoke-out
+
+      - name: Validar el VST3 con pluginval (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          curl -sSL -o pv.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip
+          unzip -q pv.zip
+          xvfb-run -a ./pluginval --strictness-level 5 --validate-in-process --timeout-ms 120000 \
+            "build/RadianceAMB_artefacts/Release/VST3/Radiance-AMB.vst3"
+
+      - name: Subir capturas de la prueba (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-interfaz
+          path: smoke-out/*.png
+
+      - name: Empaquetar (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          A="build/RadianceAMB_artefacts/Release"
+          mkdir -p "dist/Radiance-AMB"
+          cp "$A/Standalone/Radiance-AMB.exe" "dist/Radiance-AMB/"
+          cp -r "$A/VST3/Radiance-AMB.vst3" "dist/Radiance-AMB/"
+          cp packaging/LEEME-Windows.txt "dist/Radiance-AMB/LEEME.txt"
+          cd dist && 7z a -tzip ../RadianceAMB-Windows.zip "Radiance-AMB"
+
+      - name: Comprobar versión mínima de macOS
+        if: runner.os == 'macOS'
+        run: |
+          A="build/RadianceAMB_artefacts/Release"
+          for bin in "$A/VST3/Radiance-AMB.vst3/Contents/MacOS/Radiance-AMB" \
+                     "$A/AU/Radiance-AMB.component/Contents/MacOS/Radiance-AMB" \
+                     "$A/Standalone/Radiance-AMB.app/Contents/MacOS/Radiance-AMB"; do
+            echo "== $bin"; lipo -info "$bin"
+            for arch in x86_64 arm64; do
+              MIN=$(otool -arch $arch -l "$bin" | awk '/LC_BUILD_VERSION/{f=1} f&&/minos/{print $2; exit} /LC_VERSION_MIN_MACOSX/{g=1} g&&/version/{print $2; exit}')
+              echo "   $arch: macOS mínimo $MIN"
+              if [ "$arch" = "x86_64" ] && [ "$MIN" != "10.13" ]; then echo "::error::$bin ($arch) exige macOS $MIN"; exit 1; fi
+            done
+          done
+          /usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" "$A/VST3/Radiance-AMB.vst3/Contents/Info.plist" || true
+
+      - name: Empaquetar (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          A="build/RadianceAMB_artefacts/Release"
+          mkdir -p "dist/Radiance-AMB"
+          cp -R "$A/Standalone/Radiance-AMB.app" "dist/Radiance-AMB/"
+          cp -R "$A/VST3/Radiance-AMB.vst3" "dist/Radiance-AMB/"
+          cp -R "$A/AU/Radiance-AMB.component" "dist/Radiance-AMB/"
+          cp packaging/LEEME-Mac.txt "dist/Radiance-AMB/LEEME.txt"
+          # firma "ad hoc": sin cuenta de Apple, pero necesaria para que funcione en Mac con chip M
+          for b in "dist/Radiance-AMB/"*.app "dist/Radiance-AMB/"*.vst3 "dist/Radiance-AMB/"*.component; do
+            codesign --force --deep --sign - "$b"
+          done
+          hdiutil create -volname "Radiance-AMB" -srcfolder "dist/Radiance-AMB" -ov -format UDZO RadianceAMB-macOS.dmg
+
+      - name: Empaquetar (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          A="build/RadianceAMB_artefacts/Release"
+          mkdir -p "dist/Radiance-AMB"
+          cp "$A/Standalone/Radiance-AMB" "dist/Radiance-AMB/"
+          cp -r "$A/VST3/Radiance-AMB.vst3" "dist/Radiance-AMB/"
+          tar -czf RadianceAMB-Linux.tar.gz -C dist "Radiance-AMB"
+
+      - name: Subir resultado
+        uses: actions/upload-artifact@v4
+        with:
+          name: RadianceAMB-${{ matrix.name }}
+          path: |
+            RadianceAMB-Windows.zip
+            RadianceAMB-macOS.dmg
+            RadianceAMB-Linux.tar.gz
+          if-no-files-found: error
+
+      - name: Publicar release (al subir una etiqueta v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            RadianceAMB-Windows.zip
+            RadianceAMB-macOS.dmg
+            RadianceAMB-Linux.tar.gz
