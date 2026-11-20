@@ -1,7 +1,8 @@
 # Estado del proyecto — Radiance-AMB (y plan común de Javhastudios)
 
 > Para retomar en una conversación nueva: "lee el ESTADO.md de radiance-amb".
-> Actualizado: 20/11/2026.
+> Actualizado: 20/11/2026. Copia de este archivo y material de trabajo (bocetos, diseños) en el
+> proyecto de Claude "Javhastudios Plugins".
 
 ## Cómo trabajamos
 
@@ -41,7 +42,7 @@ Los tres son públicos ahora mismo. Antes de vender: hacerlos privados.
    LEEME de instalación: en español salvo que se pida otra cosa (pendiente de confirmar).
 2. **Disposición horizontal, sin teclado en pantalla**, ventana 1280×720 escalable. Boceto:
    - Online (canvas, en inglés): https://claude.ai/artifact/Wjy8ztFkfXFyXADLdHbhyF
-   - PDF: `docs/wireframe-horizontal-en.pdf` (inglés) y `docs/boceto-horizontal-es.pdf` (español).
+   - PDF (inglés y español): en el proyecto de Claude "Javhastudios Plugins" (no en el repositorio).
    - Zonas: A barra de presets · B librería de audio · C visor de onda/posición · D Source (posición)
      · E–J módulos Grain, Note, Pitch, Timbre, Space, Reverb. El panel Output desaparece: Play,
      Record y Volume van a la barra; el rango de pitch bend va a Pitch.
